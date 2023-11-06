@@ -22,9 +22,26 @@ func analysePacket(packet gopacket.Packet) {
 			// is HTTP request or response
 			if len(tcp.Payload) > 4 {
 				if bytes.Equal(tcp.Payload[:4], []byte("HTTP")) {
-					fmt.Printf("%s Respond     From %s:%d to %s:%d\n", tcp.Payload[:4], ip4.SrcIP, tcp.SrcPort, ip4.DstIP, tcp.DstPort)
+					fmt.Printf("%s Respond		From %s:%d to %s:%d\n", tcp.Payload[:4], ip4.SrcIP, tcp.SrcPort, ip4.DstIP, tcp.DstPort)
 				} else if bytes.Equal(tcp.Payload[:4], []byte("GET ")) || bytes.Equal(tcp.Payload[:4], []byte("POST")) {
-					fmt.Printf("HTTP %s     From %s:%d to %s:%d\n", tcp.Payload[:4], ip4.SrcIP, tcp.SrcPort, ip4.DstIP, tcp.DstPort)
+
+					// find the path of the request
+					i1 := -1
+					i2 := -1
+					for index, value := range tcp.Payload {
+						if i1 == -1 {
+							if value == ' ' {
+								i1 = index + 1
+							}
+						} else if i2 == -1 {
+							if value == ' ' {
+								i2 = index
+								break
+							}
+						}
+					}
+
+					fmt.Printf("HTTP %s %s		From %s:%d to %s:%d\n", tcp.Payload[:4], tcp.Payload[i1:i2], ip4.SrcIP, tcp.SrcPort, ip4.DstIP, tcp.DstPort)
 				}
 			}
 			// udp
@@ -32,17 +49,17 @@ func analysePacket(packet gopacket.Packet) {
 			udp := udpLayer.(*layers.UDP)
 			// dns
 			if dnsLayer := packet.Layer(layers.LayerTypeDNS); dnsLayer != nil {
-				fmt.Printf("DNS     From %s:%d to %s:%d\n", ip4.SrcIP, udp.SrcPort, ip4.DstIP, udp.DstPort)
+				fmt.Printf("DNS		From %s:%d to %s:%d\n", ip4.SrcIP, udp.SrcPort, ip4.DstIP, udp.DstPort)
 
 				dns := dnsLayer.(*layers.DNS)
 				// is dns request or response
 				if dns.QR {
 					for _, dnsAnswer := range dns.Answers {
-						fmt.Printf("DNS Answer: %s\n", dnsAnswer.String())
+						fmt.Printf("DNS Answer:			%s\n", dnsAnswer.String())
 					}
 				} else {
 					for _, dnsQuestion := range dns.Questions {
-						fmt.Printf("DNS Question: %s\n", string(dnsQuestion.Name))
+						fmt.Printf("DNS Question:		%s\n", string(dnsQuestion.Name))
 					}
 				}
 
